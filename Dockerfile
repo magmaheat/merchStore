@@ -1,9 +1,9 @@
 FROM golang:1.22
 
-WORKDIR ${GOPATH}/avito-shop/
-COPY . ${GOPATH}/avito-shop/
+WORKDIR ${GOPATH}/merchStore/
+COPY . ${GOPATH}/merchStore/
 
-RUN go build -o /build ./internal/cmd \
+RUN go build -o /build ./cmd \
     && go clean -cache -modcache
 
 EXPOSE 8080

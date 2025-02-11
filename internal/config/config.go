@@ -8,7 +8,7 @@ import (
 
 type HTTP struct {
 	Host string `env:"HTTP_HOST" envDefault:"0.0.0.0"`
-	Port int    `env:"HTTP_PORT" env-required:"true"`
+	Port string `env:"HTTP_PORT" env-required:"true"`
 }
 
 type App struct {
