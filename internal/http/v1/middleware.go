@@ -20,14 +20,14 @@ func (a *AuthMiddleware) UserIdentity(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		token, ok := bearerToken(c.Request())
 		if !ok {
-			log.Errorf("AuthMiddleware.UserIdentity.bearerToken: %v", ErrInvalidAuthHeader)
+			log.Errorf("http.AuthMiddleware.UserIdentity.bearerToken: %v", ErrInvalidAuthHeader)
 			return newErrorResponse(c, http.StatusUnauthorized, ErrInvalidAuthHeader.Error())
 
 		}
 
 		userId, err := a.authService.ParseToken(token)
 		if err != nil {
-			log.Errorf("AuthMiddleware.UserIdentity.h.authService.ParseToken: %v", err)
+			log.Errorf("http.AuthMiddleware.UserIdentity.h.authService.ParseToken: %v", err)
 			return newErrorResponse(c, http.StatusUnauthorized, ErrCannotParseToken.Error())
 		}
 

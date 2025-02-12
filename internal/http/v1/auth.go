@@ -15,7 +15,7 @@ type AuthRoutes struct {
 func NewAuthRoutes(g *echo.Group, authService service.Auth) {
 	r := &AuthRoutes{authService: authService}
 
-	g.POST("/auth", r.auth)
+	g.POST("", r.auth)
 }
 
 type authRequest struct {
@@ -27,7 +27,7 @@ func (r *AuthRoutes) auth(c echo.Context) error {
 	var input authRequest
 
 	if err := c.Bind(&input); err != nil {
-		log.Error("AuthRoutes.c.Bind: Failed to bind auth request")
+		log.Error("http.AuthRoutes.c.Bind: Failed to bind auth request")
 		return newErrorResponse(c, http.StatusBadRequest, ErrInvalidRequestBody.Error())
 	}
 
@@ -41,7 +41,7 @@ func (r *AuthRoutes) auth(c echo.Context) error {
 		Password: input.Password,
 	})
 	if err != nil {
-		return newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return newErrorResponse(c, http.StatusInternalServerError, "internal server error")
 	}
 
 	type response struct {

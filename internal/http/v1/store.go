@@ -15,4 +15,7 @@ func NewStoreRoutes(g *echo.Group, storeService service.Store) {
 	}
 
 	_ = r
+	g.GET("/test", func(c echo.Context) error {
+		return nil
+	})
 }

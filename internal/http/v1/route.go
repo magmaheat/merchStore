@@ -24,7 +24,8 @@ func New(services *service.Service) *echo.Echo {
 
 	api := e.Group("/api")
 
-	NewAuthRoutes(api, services.Auth)
+	authRoutes := api.Group("/auth")
+	NewAuthRoutes(authRoutes, services.Auth)
 
 	authMiddleware := &AuthMiddleware{services.Auth}
 	v1 := e.Group("", authMiddleware.UserIdentity)
