@@ -1,11 +1,10 @@
-App:
-  APP_NAME: merchStore
-  APP_VERSION: 0.0.1
+app:
+  name: merchStore
+  version: 0.0.1
 
-HTTP:
-  HTTP_HOST: 0.0.0.0
-  HTTP_PORT: 8080
+http:
+  port: 8080
 
-Log:
-  LOG_LEVEL: debug
+log:
+  level: debug
 

@@ -4,6 +4,8 @@ services:
   avito-shop-service:
     build: .
     container_name: avito-shop-service
+    volumes:
+      - ./logs:/logs
     ports:
       - "8080:8080"
     env_file:
@@ -31,7 +33,7 @@ services:
       interval: 5s
       timeout: 10s
       retries: 5
-      start_period: 10s
+      start_period: 30s
     networks:
       - internal
 networks:

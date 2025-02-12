@@ -3,26 +3,26 @@ package config
 import (
 	"github.com/ilyakaznacheev/cleanenv"
 	log "github.com/sirupsen/logrus"
+	"path"
 	"time"
 )
 
 type HTTP struct {
-	Host string `env:"HTTP_HOST" envDefault:"0.0.0.0"`
-	Port string `env:"HTTP_PORT" env-required:"true"`
+	Port string `env-required:"true" yaml:"port" env:"HTTP_PORT"`
 }
 
 type App struct {
-	Name    string `env:"APP_NAME" env-required:"true"`
-	Version string `env:"APP_VERSION" env-required:"true"`
+	Name    string `env-required:"true" yaml:"name" env:"APP_NAME"`
+	Version string `env-required:"true" yaml:"version" env:"APP_VERSION"`
 }
 
 type Log struct {
-	Level string `env:"LOG_LEVEL" env-required:"true"`
+	Level string `env-required:"true" yaml:"level" env:"LOG_LEVEL" `
 }
 
 type JWT struct {
-	SigningKey     string        `env:"JWT_SIGNING_KEY" env-required:"true"`
-	TokenAccessTTL time.Duration `env:"JWT_TOKEN_ACCESS_TTL" env-required:"true"`
+	SigningKey     string        `env-required:"true" env:"JWT_SIGNING_KEY" `
+	TokenAccessTTL time.Duration `env-required:"true" yaml:"token_ttl" env:"JWT_TOKEN_TTL"`
 }
 
 type PG struct {
@@ -30,17 +30,17 @@ type PG struct {
 }
 
 type Config struct {
-	App
-	HTTP
-	Log
-	JWT
-	PG
+	App  `yaml:"app"`
+	HTTP `yaml:"http"`
+	Log  `yaml:"log"`
+	JWT  `yaml:"jwt"`
+	PG   `yaml:"postgres"`
 }
 
 func New(configPath string) *Config {
 	cfg := &Config{}
 
-	err := cleanenv.ReadConfig(configPath, cfg)
+	err := cleanenv.ReadConfig(path.Join("./", configPath), cfg)
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
 	}
