@@ -11,10 +11,6 @@ type Dependencies struct {
 	TokenTTL time.Duration
 }
 
-type Auth interface{}
-
-type Store interface{}
-
 type Service struct {
 	Auth  Auth
 	Store Store

@@ -14,8 +14,8 @@ import (
 	"syscall"
 )
 
-func Run() {
-	cfg := config.New()
+func Run(configPath string) {
+	cfg := config.New(configPath)
 
 	setupLogger(cfg.Log.Level)
 

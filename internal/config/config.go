@@ -37,12 +37,17 @@ type Config struct {
 	PG
 }
 
-func New() *Config {
+func New(configPath string) *Config {
 	cfg := &Config{}
 
-	err := cleanenv.ReadEnv(cfg)
+	err := cleanenv.ReadConfig(configPath, cfg)
 	if err != nil {
-		log.Fatalf("Error loading config: %s", err)
+		log.Fatalf("Error loading config: %v", err)
+	}
+
+	err = cleanenv.UpdateEnv(cfg)
+	if err != nil {
+		log.Fatalf("Error loading config: %v", err)
 	}
 
 	return cfg
