@@ -56,43 +56,54 @@ func (s *Storage) GetUser(ctx context.Context, username string) (int, string, er
 	return id, hash, nil
 }
 
-func (s *Storage) CreateUserWithBalance(ctx context.Context, username string, password string) (int, error) {
-	tx, err := s.db.Pool.Begin(ctx)
-	if err != nil {
-		return 0, err
-	}
+func (s *Storage) CreateUserWithBalance(ctx context.Context, username, password string) (int, error) {
+	var userID int
 
-	sql, args, _ := s.db.Builder.
-		Insert("users").
-		Columns("username, password").
-		Values(username, password).
-		Suffix("RETURNING id").
-		ToSql()
+	sql := "SELECT create_user_with_balance($1, $2)"
+	args := []interface{}{username, password}
 
-	var id int
-	err = tx.QueryRow(ctx, sql, args...).Scan(&id)
+	err := s.db.Pool.QueryRow(ctx, sql, args...).Scan(&userID)
 	if err != nil {
 		log.Errorf("repo.CreateUserWithBalance.QueryRow: %v:", err)
-		tx.Rollback(ctx)
 		return 0, fmt.Errorf("could not create user: %w", err)
 	}
 
-	sql, args, _ = s.db.Builder.
-		Insert("balances").
-		Columns("user_id").
-		Values(id).
-		ToSql()
+	//tx, err := s.db.Pool.Begin(ctx)
+	//if err != nil {
+	//	return 0, err
+	//}
+	//
+	//sql, args, _ := s.db.Builder.
+	//	Insert("users").
+	//	Columns("username, password").
+	//	Values(username, password).
+	//	Suffix("RETURNING id").
+	//	ToSql()
+	//
+	//var id int
+	//err = tx.QueryRow(ctx, sql, args...).Scan(&id)
+	//if err != nil {
+	//	log.Errorf("repo.CreateUserWithBalance.QueryRow: %v:", err)
+	//	tx.Rollback(ctx)
+	//	return 0, fmt.Errorf("could not create user: %w", err)
+	//}
+	//
+	//sql, args, _ = s.db.Builder.
+	//	Insert("balances").
+	//	Columns("user_id").
+	//	Values(id).
+	//	ToSql()
+	//
+	//_, err = tx.Exec(ctx, sql, args...)
+	//if err != nil {
+	//	log.Errorf("repo.CreateUserWithBalance.Exec: %v:", err)
+	//	tx.Rollback(ctx)
+	//	return 0, fmt.Errorf("could not create balance: %w", err)
+	//}
+	//
+	//if err = tx.Commit(ctx); err != nil {
+	//	return 0, err
+	//}
 
-	_, err = tx.Exec(ctx, sql, args...)
-	if err != nil {
-		log.Errorf("repo.CreateUserWithBalance.Exec: %v:", err)
-		tx.Rollback(ctx)
-		return 0, fmt.Errorf("could not create balance: %w", err)
-	}
-
-	if err = tx.Commit(ctx); err != nil {
-		return 0, err
-	}
-
-	return id, nil
+	return userID, nil
 }

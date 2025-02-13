@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/magmaheat/merchStore/internal/service"
@@ -41,6 +42,9 @@ func (r *AuthRoutes) auth(c echo.Context) error {
 		Password: input.Password,
 	})
 	if err != nil {
+		if errors.Is(err, service.ErrInvalidPassword) {
+			return newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		}
 		return newErrorResponse(c, http.StatusInternalServerError, "internal server error")
 	}
 
