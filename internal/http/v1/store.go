@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"github.com/labstack/echo/v4"
 	"github.com/magmaheat/merchStore/internal/service"
 	"net/http"
@@ -34,5 +35,17 @@ func (r *StoreRoutes) buyItem(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "empty item")
 	}
 
-	return nil
+	err := r.storeService.BuyItem(c.Request().Context(), item)
+	if err != nil {
+		if errors.Is(err, service.ErrItemNotFound) {
+			return echo.NewHTTPError(http.StatusBadRequest, "item not found")
+		}
+		if errors.Is(err, service.ErrBalanceTooLow) {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.NoContent(http.StatusOK)
 }

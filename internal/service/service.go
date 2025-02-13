@@ -19,6 +19,6 @@ type Service struct {
 func NewService(deps Dependencies) *Service {
 	return &Service{
 		Auth:  NewAuthService(deps.Repo, deps.SignKey, deps.TokenTTL),
-		Store: deps.Repo,
+		Store: NewStoreService(deps.Repo),
 	}
 }

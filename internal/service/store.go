@@ -11,38 +11,36 @@ type Store interface {
 }
 
 type StoreService struct {
-	repo  repo.Repo
-	items map[string]int
+	repo repo.Repo
 }
 
 func NewStoreService(repo repo.Repo) *StoreService {
-
-	return &StoreService{repo: repo,
-		items: map[string]int{
-			"t-shirt":    80,
-			"cup":        20,
-			"book":       50,
-			"pen":        10,
-			"powerbank":  200,
-			"hoody":      300,
-			"umbrella":   200,
-			"socks":      10,
-			"wallet":     50,
-			"pink-hoody": 500,
-		},
-	}
+	return &StoreService{repo: repo}
 }
 
 func (s *StoreService) BuyItem(ctx context.Context, nameItem string) error {
-	price, ok := s.items[nameItem]
-	if !ok {
-		log.Errorf("service.BuyItem: item %s not found", nameItem)
+	price, err := s.repo.GetPriceItem(ctx, nameItem)
+	if err != nil {
+		return err
+	}
+
+	if price == 0 {
 		return ErrItemNotFound
 	}
 
-	// попытаться списать с баланса стоимость
+	userId, ok := ctx.Value("userId").(int)
+	if !ok {
+		log.Errorf("service.BuyItem: %s", ErrUserIdNotFound.Error())
+		return ErrUserIdNotFound
+	}
 
-	// при удачном списаннии добавляем предмет в инвертарь
+	if err = s.repo.UpdateBalance(ctx, userId, -price); err != nil {
+		return err
+	}
+
+	if err = s.repo.AddItem(ctx, userId, nameItem); err != nil {
+		return err
+	}
 
 	return nil
 }

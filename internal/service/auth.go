@@ -42,7 +42,7 @@ func NewAuthService(repo repo.Repo, signKey string, tokenTTL time.Duration) *Aut
 func (s *AuthService) GenerateToken(ctx context.Context, input AuthGenerateTokenInput) (string, error) {
 	const fn = "service.AuthService.GenerateToken"
 
-	userID, hash, err := s.repo.GetUser(ctx, input.Username)
+	userID, hash, err := s.repo.GetUserIdWithPassword(ctx, input.Username)
 	if err != nil {
 		return "", err
 	}

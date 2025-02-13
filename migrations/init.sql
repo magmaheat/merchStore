@@ -20,9 +20,27 @@ CREATE TABLE IF NOT EXISTS transactions (
 CREATE TABLE IF NOT EXISTS user_inventory (
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     item_name VARCHAR(100) NOT NULL,
-    quantity INT NOT NULL CHECK (quantity > 0),
-    PRIMARY KEY (user_id, item_name)
+    quantity INT NOT NULL CHECK (quantity > 0)
 );
+
+CREATE TABLE IF NOT EXISTS items_price (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    price INT NOT NULL CHECK (price >= 0)
+);
+
+INSERT INTO items_price (name, price) VALUES
+    ('t-shirt', 80),
+    ('cup', 20),
+    ('book', 50),
+    ('pen', 10),
+    ('powerbank', 200),
+    ('hoody', 300),
+    ('umbrella', 200),
+    ('socks', 10),
+    ('wallet', 50),
+    ('pink-hoody', 500);
+
 
 CREATE OR REPLACE FUNCTION create_user_with_balance(username TEXT, password TEXT)
 RETURNS INT AS $$
