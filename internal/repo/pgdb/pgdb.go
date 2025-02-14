@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/magmaheat/merchStore/pkg/postgres"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type Storage struct {
@@ -34,7 +35,7 @@ func (s *Storage) GetUserIdWithPassword(ctx context.Context, username string) (i
 		if errors.Is(err, pgx.ErrNoRows) {
 			return 0, "", nil
 		}
-		log.Errorf("repo.GetUserIdWithPassword.QueryRow: %v:", err)
+		log.Errorf("repo.pgdb.GetUserIdWithPassword.QueryRow: %v:", err)
 		return 0, "", fmt.Errorf("could not get user: %w", err)
 	}
 
@@ -49,7 +50,7 @@ func (s *Storage) CreateUserWithBalance(ctx context.Context, username, password 
 
 	err := s.db.Pool.QueryRow(ctx, sql, args...).Scan(&userID)
 	if err != nil {
-		log.Errorf("repo.CreateUserWithBalance.QueryRow: %v:", err)
+		log.Errorf("repo.pgdb.CreateUserWithBalance.QueryRow: %v:", err)
 		return 0, fmt.Errorf("could not create user: %w", err)
 	}
 
@@ -66,7 +67,7 @@ func (s *Storage) GetPriceItem(ctx context.Context, item string) (int, error) {
 	var price int
 	err := s.db.Pool.QueryRow(ctx, sql, args...).Scan(&price)
 	if err != nil {
-		log.Errorf("repo.GetPriceItem.QueryRow: %v:", err)
+		log.Errorf("repo.pgdb.GetPriceItem.QueryRow: %v:", err)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return 0, nil
 		}
@@ -76,16 +77,16 @@ func (s *Storage) GetPriceItem(ctx context.Context, item string) (int, error) {
 	return price, nil
 }
 
-func (s *Storage) UpdateBalance(ctx context.Context, userId int, price int) error {
+func (s *Storage) UpdateBalance(ctx context.Context, userId int, coins int) error {
 	sql, args, _ := s.db.Builder.
 		Update("balances").
-		Set("money", squirrel.Expr("money + ?", price)).
+		Set("coins", squirrel.Expr("coins + ?", coins)).
 		Where(squirrel.Eq{"user_id": userId}).
 		ToSql()
 
 	_, err := s.db.Pool.Exec(ctx, sql, args...)
 	if err != nil {
-		log.Errorf("repo.UpdateBalance.Query: %v:", err)
+		log.Errorf("repo.pgdb.UpdateBalance.Query: %v:", err)
 
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23514" {
@@ -106,7 +107,80 @@ func (s *Storage) AddItem(ctx context.Context, userId int, item string) error {
 
 	_, err := s.db.Pool.Exec(ctx, sql, args...)
 	if err != nil {
-		log.Errorf("repo.AddItem.Exec: %v:", err)
+		log.Errorf("repo.pgdb.AddItem.Exec: %v:", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *Storage) GetNameUser(ctx context.Context, userId int) (string, error) {
+	sql, args, _ := s.db.Builder.
+		Select("name").
+		From("users").
+		Where("id = ?", userId).
+		ToSql()
+
+	var name string
+	err := s.db.Pool.QueryRow(ctx, sql, args...).Scan(&name)
+	if err != nil {
+		log.Errorf("repo.pgdb.GetNameUser.QueryRow: %v", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", nil
+		}
+	}
+
+	return name, nil
+}
+
+func (s *Storage) TransferCoins(ctx context.Context, fromUserId, toUserId, amount int) error {
+	const fn = "repo.pgdb.TransferCoins"
+
+	tx, err := s.db.Pool.Begin(ctx)
+	if err != nil {
+		log.Errorf("%s.Begin: %v", fn, err)
+		return err
+	}
+
+	sql, args, _ := s.db.Builder.
+		Update("balances").
+		Set("coins", squirrel.Expr("CASE WHEN user_id = ? THEN coins - ? WHEN user_id = ? THEN coins + ? ELSE coins END", fromUserId, amount, toUserId, amount)).
+		Where(squirrel.Eq{"user_id": []int{fromUserId, toUserId}}).
+		ToSql()
+
+	res, err := tx.Exec(ctx, sql, args...)
+	if err != nil {
+		log.Errorf("%s.balances.Exec: %v", fn, err)
+
+		tx.Rollback(ctx)
+		return err
+	}
+
+	rowAffected := res.RowsAffected()
+	if rowAffected != 2 {
+		log.Errorf("%s.RowsAffected: %v", fn, err)
+
+		tx.Rollback(ctx)
+		return fmt.Errorf("rows affected != 2")
+	}
+
+	sql, args, _ = s.db.Builder.
+		Insert("transactions").
+		Columns("sender_id", "receiver_id", "amount", "created_at").
+		Values(fromUserId, toUserId, amount, time.Now()).
+		ToSql()
+
+	_, err = tx.Exec(ctx, sql, args...)
+	if err != nil {
+		log.Errorf("%s.transactions.Exec: %v", fn, err)
+
+		tx.Rollback(ctx)
+		return err
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		log.Errorf("%s.Commit: %v", fn, err)
 		return err
 	}
 

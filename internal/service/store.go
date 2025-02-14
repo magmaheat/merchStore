@@ -8,6 +8,7 @@ import (
 
 type Store interface {
 	BuyItem(ctx context.Context, nameItem string) error
+	SendCoin(ctx context.Context, toUser string, amount int) error
 }
 
 type StoreService struct {
@@ -31,7 +32,7 @@ func (s *StoreService) BuyItem(ctx context.Context, nameItem string) error {
 	userId, ok := ctx.Value("userId").(int)
 	log.Info("userId:", userId)
 	if !ok {
-		log.Errorf("service.BuyItem: %s", ErrUserIdNotFound.Error())
+		log.Errorf("service.Store.BuyItem: %s", ErrUserIdNotFound.Error())
 		return ErrUserIdNotFound
 	}
 
@@ -41,6 +42,26 @@ func (s *StoreService) BuyItem(ctx context.Context, nameItem string) error {
 
 	//TODO дублирует записи в таблице
 	if err = s.repo.AddItem(ctx, userId, nameItem); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *StoreService) SendCoin(ctx context.Context, toUser string, amount int) error {
+	toUserId, _, err := s.repo.GetUserIdWithPassword(ctx, toUser)
+	if err != nil {
+		return err
+	}
+
+	fromUserId, ok := ctx.Value("userId").(int)
+	if !ok {
+		log.Errorf("service.Store.SendCoin: %s", ErrUserIdNotFound)
+		return ErrUserIdNotFound
+	}
+
+	err = s.repo.TransferCoins(ctx, fromUserId, toUserId, amount)
+	if err != nil {
 		return err
 	}
 

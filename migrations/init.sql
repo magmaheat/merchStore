@@ -6,13 +6,13 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS balances (
     user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    money INT NOT NULL CHECK (money > 0) DEFAULT 1000
+    coins INT NOT NULL CHECK (coins >= 0) DEFAULT 1000
 );
 
 CREATE TABLE IF NOT EXISTS transactions (
     id SERIAL PRIMARY KEY,
-    sender_name VARCHAR(100) NOT NULL,
-    receiver_name VARCHAR(100) NOT NULL,
+    sender_id INT NOT NULL,
+    receiver_id INT NOT NULL,
     amount INT NOT NULL CHECK (amount > 0),
     created_at TIMESTAMP DEFAULT NOW()
 );
@@ -51,7 +51,7 @@ INSERT INTO users (username, password)
 VALUES (username, password)
     RETURNING id INTO user_id;
 
-INSERT INTO balances (user_id, money)
+INSERT INTO balances (user_id, coins)
 VALUES (user_id, 1000);
 
 RETURN user_id;
