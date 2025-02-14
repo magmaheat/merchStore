@@ -60,6 +60,8 @@ func (s *AuthService) GenerateToken(ctx context.Context, input AuthGenerateToken
 		}
 	}
 
+	log.Debug("userID:", userID)
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &TokenClaims{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(s.tokenTTL).Unix(),

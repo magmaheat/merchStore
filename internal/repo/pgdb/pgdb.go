@@ -19,23 +19,6 @@ func New(db *postgres.Postgres) *Storage {
 	return &Storage{db: db}
 }
 
-func (s *Storage) CreateUser(ctx context.Context, username string, password string) (int, error) {
-	sql, args, _ := s.db.Builder.
-		Insert("users").
-		Columns("username, password").
-		Values(username, password).
-		ToSql()
-
-	var id int
-	err := s.db.Pool.QueryRow(ctx, sql, args...).Scan(&id)
-	if err != nil {
-		log.Errorf("repo.CreateUser.QueryRow: %v:", err)
-		return 0, fmt.Errorf("could not create user: %w", err)
-	}
-
-	return id, nil
-}
-
 func (s *Storage) GetUserIdWithPassword(ctx context.Context, username string) (int, string, error) {
 	sql, args, _ := s.db.Builder.
 		Select("id", "password").

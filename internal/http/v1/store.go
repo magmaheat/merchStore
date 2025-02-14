@@ -11,14 +11,8 @@ type StoreRoutes struct {
 	storeService service.Store
 }
 
-func NewStoreRoutes(g *echo.Group, storeService service.Store) {
-	r := &StoreRoutes{
-		storeService: storeService,
-	}
-
-	g.GET("/info", r.info)
-	g.POST("/sendCoin", r.sendCoin)
-	g.GET("/buy/:item", r.buyItem)
+func NewStoreRoutes(storeService service.Store) *StoreRoutes {
+	return &StoreRoutes{storeService: storeService}
 }
 
 func (r *StoreRoutes) sendCoin(c echo.Context) error {

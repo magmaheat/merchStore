@@ -22,14 +22,15 @@ func New(services *service.Service) *echo.Echo {
 	e.GET("/health", func(c echo.Context) error { return c.NoContent(200) })
 	e.GET("/swagger/", echoSwagger.WrapHandler)
 
-	api := e.Group("/api")
-
-	authRoutes := api.Group("/auth")
-	NewAuthRoutes(authRoutes, services.Auth)
+	authRoutes := NewAuthRoutes(services.Auth)
+	e.POST("/api/auth", authRoutes.auth)
 
 	authMiddleware := &AuthMiddleware{services.Auth}
-	v1 := e.Group("", authMiddleware.UserIdentity)
-	NewStoreRoutes(v1, services.Store)
+
+	storeRoutes := NewStoreRoutes(services.Store)
+	e.GET("/api/info", storeRoutes.info, authMiddleware.UserIdentity)
+	e.POST("/api/sendCoin", storeRoutes.sendCoin, authMiddleware.UserIdentity)
+	e.GET("/api/buy/:item", storeRoutes.buyItem, authMiddleware.UserIdentity)
 
 	return e
 }

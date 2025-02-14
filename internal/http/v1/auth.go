@@ -13,10 +13,8 @@ type AuthRoutes struct {
 	authService service.Auth
 }
 
-func NewAuthRoutes(g *echo.Group, authService service.Auth) {
-	r := &AuthRoutes{authService: authService}
-
-	g.POST("", r.auth)
+func NewAuthRoutes(authService service.Auth) *AuthRoutes {
+	return &AuthRoutes{authService: authService}
 }
 
 type authRequest struct {

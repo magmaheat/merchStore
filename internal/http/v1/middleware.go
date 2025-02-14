@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"github.com/labstack/echo/v4"
 	"github.com/magmaheat/merchStore/internal/service"
 	log "github.com/sirupsen/logrus"
@@ -31,7 +32,8 @@ func (a *AuthMiddleware) UserIdentity(next echo.HandlerFunc) echo.HandlerFunc {
 			return newErrorResponse(c, http.StatusUnauthorized, ErrCannotParseToken.Error())
 		}
 
-		c.Set(userIdCtx, userId)
+		ctx := context.WithValue(c.Request().Context(), userIdCtx, userId)
+		c.SetRequest(c.Request().WithContext(ctx))
 
 		return next(c)
 	}
