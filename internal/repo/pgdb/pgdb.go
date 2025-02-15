@@ -104,6 +104,8 @@ func (s *Storage) AddItem(ctx context.Context, userId int, item string) error {
 		Insert("user_inventory").
 		Columns("user_id", "item_name", "quantity").
 		Values(userId, item, 1).
+		Suffix("ON CONFLICT (user_id, item_name) DO UPDATE " +
+			"SET quantity = user_inventory.quantity + EXCLUDED.quantity").
 		ToSql()
 
 	_, err := s.db.Pool.Exec(ctx, sql, args...)
@@ -189,7 +191,7 @@ func (s *Storage) TransferCoins(ctx context.Context, fromUserId, toUserId, amoun
 }
 
 func (s *Storage) GetReceivedTransactions(ctx context.Context, userId int) ([]repo.GetReceivedTransactionOutput, error) {
-	sql, args, _ := squirrel.
+	sql, args, _ := s.db.Builder.
 		Select("users.username AS from_user", "transactions.amount").
 		From("transactions").
 		Join("users ON transactions.sender_id = users.id").
@@ -218,7 +220,7 @@ func (s *Storage) GetReceivedTransactions(ctx context.Context, userId int) ([]re
 }
 
 func (s *Storage) GetSentTransactions(ctx context.Context, userId int) ([]repo.GetSentTransactionOutput, error) {
-	sql, args, _ := squirrel.
+	sql, args, _ := s.db.Builder.
 		Select("users.username AS to_user", "transactions.amount").
 		From("transactions").
 		Join("users ON transactions.receiver_id = users.id").
@@ -280,7 +282,7 @@ func (s *Storage) GetItems(ctx context.Context, userId int) ([]repo.Item, error)
 	var items []repo.Item
 	for rows.Next() {
 		var item repo.Item
-		if err = rows.Scan(&item); err != nil {
+		if err = rows.Scan(&item.Type, &item.Quantity); err != nil {
 			log.Errorf("repo.pgdb.GetItems.Scan: %v", err)
 			return nil, err
 		}

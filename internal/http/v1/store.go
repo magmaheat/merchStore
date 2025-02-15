@@ -50,7 +50,7 @@ func (r *StoreRoutes) info(c echo.Context) error {
 		return newErrorResponse(c, http.StatusInternalServerError, ErrInternalServerError.Error())
 	}
 
-	return nil
+	return c.JSON(http.StatusOK, output)
 }
 
 func (r *StoreRoutes) buyItem(c echo.Context) error {

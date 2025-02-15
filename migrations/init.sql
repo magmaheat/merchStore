@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS transactions (
 CREATE TABLE IF NOT EXISTS user_inventory (
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     item_name VARCHAR(100) NOT NULL,
-    quantity INT NOT NULL CHECK (quantity > 0)
+    quantity INT NOT NULL CHECK (quantity > 0),
+    UNIQUE (user_id, item_name)
 );
 
 CREATE TABLE IF NOT EXISTS items_price (

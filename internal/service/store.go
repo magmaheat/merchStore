@@ -32,7 +32,6 @@ func (s *StoreService) BuyItem(ctx context.Context, nameItem string) error {
 	}
 
 	userId, ok := ctx.Value("userId").(int)
-	log.Info("userId:", userId)
 	if !ok {
 		log.Errorf("service.Store.BuyItem: %s", ErrUserIdNotFound.Error())
 		return ErrUserIdNotFound
@@ -42,7 +41,6 @@ func (s *StoreService) BuyItem(ctx context.Context, nameItem string) error {
 		return err
 	}
 
-	//TODO дублирует записи в таблице
 	if err = s.repo.AddItem(ctx, userId, nameItem); err != nil {
 		return err
 	}
@@ -101,7 +99,6 @@ func (s *StoreService) GetInfo(ctx context.Context) (*models.Info, error) {
 	sentCoins := models.ConvertSentTransactions(senderTransactions)
 	inventory := models.ConvertInventory(items)
 
-	// Используем конструктор для создания ответа
 	return models.NewInfo(
 		coins,
 		inventory,
