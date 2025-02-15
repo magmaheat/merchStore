@@ -7,6 +7,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/magmaheat/merchStore/internal/repo"
 	"github.com/magmaheat/merchStore/pkg/postgres"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -185,4 +186,107 @@ func (s *Storage) TransferCoins(ctx context.Context, fromUserId, toUserId, amoun
 	}
 
 	return nil
+}
+
+func (s *Storage) GetReceivedTransactions(ctx context.Context, userId int) ([]repo.GetReceivedTransactionOutput, error) {
+	sql, args, _ := squirrel.
+		Select("users.username AS from_user", "transactions.amount").
+		From("transactions").
+		Join("users ON transactions.sender_id = users.id").
+		Where(squirrel.Eq{"transactions.receiver_id": userId}).
+		ToSql()
+
+	rows, err := s.db.Pool.Query(ctx, sql, args...)
+	if err != nil {
+		log.Errorf("repo.pgdb.GetReceivedTransactions.Query: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var transactions []repo.GetReceivedTransactionOutput
+	for rows.Next() {
+		var transaction repo.GetReceivedTransactionOutput
+		if err = rows.Scan(&transaction.FromUser, &transaction.Amount); err != nil {
+			log.Errorf("repo.pgdb.GetReceivedTransactions.Scan: %v", err)
+			return nil, err
+		}
+
+		transactions = append(transactions, transaction)
+	}
+
+	return transactions, nil
+}
+
+func (s *Storage) GetSentTransactions(ctx context.Context, userId int) ([]repo.GetSentTransactionOutput, error) {
+	sql, args, _ := squirrel.
+		Select("users.username AS to_user", "transactions.amount").
+		From("transactions").
+		Join("users ON transactions.receiver_id = users.id").
+		Where(squirrel.Eq{"transactions.sender_id": userId}).
+		ToSql()
+
+	rows, err := s.db.Pool.Query(ctx, sql, args...)
+	if err != nil {
+		log.Errorf("repo.pgdb.GetSentTransactions.Query: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var transactions []repo.GetSentTransactionOutput
+	for rows.Next() {
+		var transaction repo.GetSentTransactionOutput
+		if err = rows.Scan(&transaction.ToUser, &transaction.Amount); err != nil {
+			log.Errorf("repo.pgdb.GetSentTransactions.Scan: %v", err)
+			return nil, err
+		}
+
+		transactions = append(transactions, transaction)
+	}
+
+	return transactions, nil
+}
+
+func (s *Storage) GetBalance(ctx context.Context, userId int) (int, error) {
+	sql, args, _ := s.db.Builder.
+		Select("coins").
+		From("balances").
+		Where("user_id = ?", userId).
+		ToSql()
+
+	var coins int
+	err := s.db.Pool.QueryRow(ctx, sql, args...).Scan(&coins)
+	if err != nil {
+		log.Errorf("repo.pgdb.GetBalance.QueryRow: %v", err)
+		return 0, err
+	}
+
+	return coins, nil
+}
+
+func (s *Storage) GetItems(ctx context.Context, userId int) ([]repo.Item, error) {
+	sql, args, _ := s.db.Builder.
+		Select("item_name", "quantity").
+		From("user_inventory").
+		Where("user_id = ?", userId).
+		ToSql()
+
+	rows, err := s.db.Pool.Query(ctx, sql, args...)
+	if err != nil {
+		log.Errorf("repo.pgdb.GetItems.Query: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []repo.Item
+	for rows.Next() {
+		var item repo.Item
+		if err = rows.Scan(&item); err != nil {
+			log.Errorf("repo.pgdb.GetItems.Scan: %v", err)
+			return nil, err
+		}
+
+		items = append(items, item)
+	}
+
+	return items, nil
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/magmaheat/merchStore/internal/models"
 	"github.com/magmaheat/merchStore/internal/repo"
 	log "github.com/sirupsen/logrus"
 )
@@ -9,6 +10,7 @@ import (
 type Store interface {
 	BuyItem(ctx context.Context, nameItem string) error
 	SendCoin(ctx context.Context, toUser string, amount int) error
+	GetInfo(ctx context.Context) (*models.Info, error)
 }
 
 type StoreService struct {
@@ -66,4 +68,45 @@ func (s *StoreService) SendCoin(ctx context.Context, toUser string, amount int) 
 	}
 
 	return nil
+}
+
+func (s *StoreService) GetInfo(ctx context.Context) (*models.Info, error) {
+	userId, ok := ctx.Value("userId").(int)
+	if !ok {
+		log.Errorf("service.Store.GetInfo: %s", ErrUserIdNotFound)
+		return nil, ErrUserIdNotFound
+	}
+
+	coins, err := s.repo.GetBalance(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := s.repo.GetItems(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	receiverTransactions, err := s.repo.GetReceivedTransactions(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	senderTransactions, err := s.repo.GetSentTransactions(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	receivedCoins := models.ConvertReceivedTransactions(receiverTransactions)
+	sentCoins := models.ConvertSentTransactions(senderTransactions)
+	inventory := models.ConvertInventory(items)
+
+	// Используем конструктор для создания ответа
+	return models.NewInfo(
+		coins,
+		inventory,
+		receivedCoins,
+		sentCoins,
+	), nil
+
 }

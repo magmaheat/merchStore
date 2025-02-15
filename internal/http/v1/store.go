@@ -45,6 +45,11 @@ func (r *StoreRoutes) sendCoin(c echo.Context) error {
 }
 
 func (r *StoreRoutes) info(c echo.Context) error {
+	output, err := r.storeService.GetInfo(c.Request().Context())
+	if err != nil {
+		return newErrorResponse(c, http.StatusInternalServerError, ErrInternalServerError.Error())
+	}
+
 	return nil
 }
 
