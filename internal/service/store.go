@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=Store --output=./../mocks
 type Store interface {
 	BuyItem(ctx context.Context, nameItem string) error
 	SendCoin(ctx context.Context, toUser string, amount int) error

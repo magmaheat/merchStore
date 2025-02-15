@@ -10,18 +10,14 @@ import (
 	"time"
 )
 
-type AuthGenerateTokenInput struct {
-	Username string
-	Password string
-}
-
 type TokenClaims struct {
 	jwt.StandardClaims
 	UserId int
 }
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=Auth --output=./../mocks
 type Auth interface {
-	GenerateToken(ctx context.Context, input AuthGenerateTokenInput) (string, error)
+	GenerateToken(ctx context.Context, username, password string) (string, error)
 	ParseToken(accessToken string) (int, error)
 }
 
@@ -39,22 +35,22 @@ func NewAuthService(repo repo.Repo, signKey string, tokenTTL time.Duration) *Aut
 	}
 }
 
-func (s *AuthService) GenerateToken(ctx context.Context, input AuthGenerateTokenInput) (string, error) {
+func (s *AuthService) GenerateToken(ctx context.Context, username, password string) (string, error) {
 	const fn = "service.AuthService.GenerateToken"
 
-	userID, hash, err := s.repo.GetUserIdWithPassword(ctx, input.Username)
+	userID, hash, err := s.repo.GetUserIdWithPassword(ctx, username)
 	if err != nil {
 		return "", err
 	}
 
 	if userID == 0 {
-		hash, _ = hashPassword(input.Password)
-		userID, err = s.repo.CreateUserWithBalance(ctx, input.Username, hash)
+		hash, _ = hashPassword(password)
+		userID, err = s.repo.CreateUserWithBalance(ctx, username, hash)
 		if err != nil {
 			return "", err
 		}
 	} else {
-		if !checkPassword(input.Password, hash) {
+		if !checkPassword(password, hash) {
 			log.Errorf("%s.checkPassword: %s", fn, ErrInvalidPassword.Error())
 			return "", ErrInvalidPassword
 		}

@@ -35,10 +35,7 @@ func (r *AuthRoutes) auth(c echo.Context) error {
 		return newErrorResponse(c, http.StatusBadRequest, ErrInvalidRequestBody.Error())
 	}
 
-	token, err := r.authService.GenerateToken(c.Request().Context(), service.AuthGenerateTokenInput{
-		Username: input.Username,
-		Password: input.Password,
-	})
+	token, err := r.authService.GenerateToken(c.Request().Context(), input.Username, input.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidPassword) {
 			return newErrorResponse(c, http.StatusUnauthorized, err.Error())

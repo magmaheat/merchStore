@@ -17,6 +17,7 @@ type Item struct {
 	Quantity int
 }
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=Repo --output=./../mocks
 type Repo interface {
 	GetUserIdWithPassword(ctx context.Context, username string) (int, string, error)
 	CreateUserWithBalance(ctx context.Context, username, password string) (int, error)
