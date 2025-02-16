@@ -1,14 +1,19 @@
-compose-up:
+up:
 	docker-compose up --build -d && docker-compose logs -f
 .PHONY: compose-up
 
-compose-down:
+down:
 	docker-compose down --remove-orphans
 .PHONY: compose-down
 
-test-coverage:
-	go test -coverprofile=coverage.out ./...
+unit-tests:
+	go test -coverprofile=coverage.out ./internal/service
 	go tool cover -func=coverage.out
+.PHONY: unit-tests
+
+tests:
+	go test ./tests
+.PHONY: tests
 
 linter-golangci:
 	golangci-lint run

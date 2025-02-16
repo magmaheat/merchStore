@@ -114,3 +114,45 @@ func TestSendCoin(t *testing.T) {
 			Status(http.StatusInternalServerError)
 	})
 }
+
+func TestGetInfo(t *testing.T) {
+	e := httpexpect.WithConfig(httpexpect.Config{
+		BaseURL:  "http://localhost:8080",
+		Reporter: httpexpect.NewAssertReporter(t),
+		Printers: []httpexpect.Printer{
+			httpexpect.NewDebugPrinter(t, true),
+		},
+	})
+
+	var token string
+
+	t.Run("Auth", func(t *testing.T) {
+		authReq := map[string]string{
+			"username": "testUser",
+			"password": "testPassword",
+		}
+
+		obj := e.POST("/api/auth").
+			WithJSON(authReq).
+			Expect().
+			Status(http.StatusOK).JSON().Object()
+
+		token = obj.Value("token").String().Raw()
+		if token == "" {
+			t.Fatal("Expected non-empty token")
+		}
+	})
+
+	t.Run("GetInfoSuccess", func(t *testing.T) {
+		e.GET("/api/info").WithHeader("Authorization", "Bearer "+token).
+			Expect().
+			Status(http.StatusOK).JSON().Object().ContainsKey("coins").
+			Value("coins").Number().Gt(0)
+	})
+
+	t.Run("GetInfoUnauthorized", func(t *testing.T) {
+		e.GET("/api/info").
+			Expect().
+			Status(http.StatusUnauthorized)
+	})
+}
