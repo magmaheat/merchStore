@@ -6,6 +6,7 @@ import (
 	v1 "github.com/magmaheat/merchStore/internal/http/v1"
 	"github.com/magmaheat/merchStore/internal/repo/pgdb"
 	"github.com/magmaheat/merchStore/internal/service"
+	"github.com/magmaheat/merchStore/pkg/hasher/bcryptHasher"
 	"github.com/magmaheat/merchStore/pkg/httpserver"
 	"github.com/magmaheat/merchStore/pkg/postgres"
 	log "github.com/sirupsen/logrus"
@@ -32,6 +33,7 @@ func Run(configPath string) {
 	log.Info("Initializing services")
 	deps := service.Dependencies{
 		Repo:     storage,
+		Hasher:   bcryptHasher.New(),
 		SignKey:  cfg.SigningKey,
 		TokenTTL: cfg.TokenAccessTTL,
 	}

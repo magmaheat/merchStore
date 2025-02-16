@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/magmaheat/merchStore/internal/models"
 	"github.com/magmaheat/merchStore/internal/repo"
+	"github.com/magmaheat/merchStore/internal/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,7 +33,7 @@ func (s *StoreService) BuyItem(ctx context.Context, nameItem string) error {
 		return ErrItemNotFound
 	}
 
-	userId, ok := ctx.Value("userId").(int)
+	userId, ok := ctx.Value(types.UserIdCtx).(int)
 	if !ok {
 		log.Errorf("service.Store.BuyItem: %s", ErrUserIdNotFound.Error())
 		return ErrUserIdNotFound
@@ -55,7 +56,7 @@ func (s *StoreService) SendCoin(ctx context.Context, toUser string, amount int) 
 		return err
 	}
 
-	fromUserId, ok := ctx.Value("userId").(int)
+	fromUserId, ok := ctx.Value(types.UserIdCtx).(int)
 	if !ok {
 		log.Errorf("service.Store.SendCoin: %s", ErrUserIdNotFound)
 		return ErrUserIdNotFound
@@ -70,7 +71,7 @@ func (s *StoreService) SendCoin(ctx context.Context, toUser string, amount int) 
 }
 
 func (s *StoreService) GetInfo(ctx context.Context) (*models.Info, error) {
-	userId, ok := ctx.Value("userId").(int)
+	userId, ok := ctx.Value(types.UserIdCtx).(int)
 	if !ok {
 		log.Errorf("service.Store.GetInfo: %s", ErrUserIdNotFound)
 		return nil, ErrUserIdNotFound

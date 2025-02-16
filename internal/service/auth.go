@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt"
 	"github.com/magmaheat/merchStore/internal/repo"
+	"github.com/magmaheat/merchStore/pkg/hasher"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
@@ -23,13 +23,15 @@ type Auth interface {
 
 type AuthService struct {
 	repo     repo.Repo
+	hasher   hasher.PasswordHasher
 	signKey  string
 	tokenTTL time.Duration
 }
 
-func NewAuthService(repo repo.Repo, signKey string, tokenTTL time.Duration) *AuthService {
+func NewAuthService(repo repo.Repo, hasher hasher.PasswordHasher, signKey string, tokenTTL time.Duration) *AuthService {
 	return &AuthService{
 		repo:     repo,
+		hasher:   hasher,
 		signKey:  signKey,
 		tokenTTL: tokenTTL,
 	}
@@ -44,13 +46,13 @@ func (s *AuthService) GenerateToken(ctx context.Context, username, password stri
 	}
 
 	if userID == 0 {
-		hash, _ = hashPassword(password)
+		hash, _ = s.hasher.Hash(password)
 		userID, err = s.repo.CreateUserWithBalance(ctx, username, hash)
 		if err != nil {
 			return "", err
 		}
 	} else {
-		if !checkPassword(password, hash) {
+		if !s.hasher.Check(password, hash) {
 			log.Errorf("%s.checkPassword: %s", fn, ErrInvalidPassword.Error())
 			return "", ErrInvalidPassword
 		}
@@ -92,17 +94,4 @@ func (s *AuthService) ParseToken(accessToken string) (int, error) {
 	}
 
 	return claims.UserId, nil
-}
-
-func hashPassword(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hash), nil
-}
-
-func checkPassword(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
 }

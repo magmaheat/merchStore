@@ -4,13 +4,10 @@ import (
 	"context"
 	"github.com/labstack/echo/v4"
 	"github.com/magmaheat/merchStore/internal/service"
+	"github.com/magmaheat/merchStore/internal/types"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
-)
-
-const (
-	userIdCtx = "userId"
 )
 
 type AuthMiddleware struct {
@@ -32,7 +29,7 @@ func (a *AuthMiddleware) UserIdentity(next echo.HandlerFunc) echo.HandlerFunc {
 			return newErrorResponse(c, http.StatusUnauthorized, ErrCannotParseToken.Error())
 		}
 
-		ctx := context.WithValue(c.Request().Context(), userIdCtx, userId)
+		ctx := context.WithValue(c.Request().Context(), types.UserIdCtx, userId)
 		c.SetRequest(c.Request().WithContext(ctx))
 
 		return next(c)

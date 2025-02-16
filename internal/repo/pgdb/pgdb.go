@@ -138,6 +138,7 @@ func (s *Storage) GetNameUser(ctx context.Context, userId int) (string, error) {
 
 func (s *Storage) TransferCoins(ctx context.Context, fromUserId, toUserId, amount int) error {
 	const fn = "repo.pgdb.TransferCoins"
+	const rollFn = "rollback failed"
 
 	tx, err := s.db.Pool.Begin(ctx)
 	if err != nil {
@@ -155,7 +156,11 @@ func (s *Storage) TransferCoins(ctx context.Context, fromUserId, toUserId, amoun
 	if err != nil {
 		log.Errorf("%s.balances.Exec: %v", fn, err)
 
-		tx.Rollback(ctx)
+		rollbackErr := tx.Rollback(ctx)
+		if rollbackErr != nil {
+			log.Errorf("%s: %v", rollFn, rollbackErr)
+		}
+
 		return err
 	}
 
@@ -163,7 +168,11 @@ func (s *Storage) TransferCoins(ctx context.Context, fromUserId, toUserId, amoun
 	if rowAffected != 2 {
 		log.Errorf("%s.RowsAffected: %v", fn, err)
 
-		tx.Rollback(ctx)
+		rollbackErr := tx.Rollback(ctx)
+		if rollbackErr != nil {
+			log.Errorf("%s: %v", rollFn, rollbackErr)
+		}
+
 		return fmt.Errorf("rows affected != 2")
 	}
 
@@ -177,7 +186,10 @@ func (s *Storage) TransferCoins(ctx context.Context, fromUserId, toUserId, amoun
 	if err != nil {
 		log.Errorf("%s.transactions.Exec: %v", fn, err)
 
-		tx.Rollback(ctx)
+		rollbackErr := tx.Rollback(ctx)
+		if rollbackErr != nil {
+			log.Errorf("%s: %v", rollFn, rollbackErr)
+		}
 		return err
 	}
 

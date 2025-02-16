@@ -1,0 +1,38 @@
+linters:
+  enable:
+    - golint
+    - errcheck
+    - staticcheck
+    - unused
+    - govet
+    - gocyclo
+    - typecheck
+    - ineffassign
+    - lll
+    - deadcode
+    - misspell
+    - bodyclose
+
+issues:
+  exclude-rules:
+    - text: "Error return value is not checked"
+      linters:
+        - errcheck
+    - text: "should not use basic type"
+      linters:
+        - golint
+  include:
+    - ".*"
+
+run:
+  skip-dirs:
+    - "testdata"
+    - "vendor"
+  timeout: 5m
+  concurrency: 4
+  tests: true
+
+output:
+  formats:
+    - text
+  color: true
