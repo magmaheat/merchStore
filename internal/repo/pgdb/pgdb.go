@@ -22,6 +22,9 @@ func New(db *postgres.Postgres) *Storage {
 }
 
 func (s *Storage) GetUserIdWithPassword(ctx context.Context, username string) (int, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	defer cancel()
+
 	sql, args, _ := s.db.Builder.
 		Select("id", "password").
 		From("users").
@@ -44,8 +47,10 @@ func (s *Storage) GetUserIdWithPassword(ctx context.Context, username string) (i
 }
 
 func (s *Storage) CreateUserWithBalance(ctx context.Context, username, password string) (int, error) {
-	var userID int
+	ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	defer cancel()
 
+	var userID int
 	sql := "SELECT create_user_with_balance($1, $2)"
 	args := []interface{}{username, password}
 
