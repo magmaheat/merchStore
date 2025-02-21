@@ -21,6 +21,10 @@ func New(db *postgres.Postgres) *Storage {
 	return &Storage{db: db}
 }
 
+func (s *Storage) FastGetUserIdWithPassword(ctx context.Context, username, password string) (string, error) {
+	return "", nil
+}
+
 func (s *Storage) GetUserIdWithPassword(ctx context.Context, username string) (int, string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
 	defer cancel()

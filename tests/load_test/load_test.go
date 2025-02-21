@@ -4,6 +4,7 @@ package load_test
 
 import (
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -15,7 +16,19 @@ func generateUsername() string {
 	return fmt.Sprintf("user_%s", uuid.New().String())
 }
 
+func generateUserList(count int) []string {
+	users := make([]string, 0, count)
+	for i := 0; i < count; i++ {
+		users = append(users, fmt.Sprintf("user_%d", i+1))
+	}
+
+	return users
+}
+
 func TestAuthLoad(t *testing.T) {
+	users := generateUserList(100000)
+	var index uint64
+
 	rate := vegeta.Rate{Freq: 50, Per: time.Second}
 	duration := 10 * time.Second
 
@@ -26,9 +39,13 @@ func TestAuthLoad(t *testing.T) {
 			if tgt == nil {
 				return vegeta.ErrNilTarget
 			}
+
+			currentIndex := atomic.AddUint64(&index, 1) - 1
+			user := users[int(currentIndex)%len(users)]
+
 			tgt.Method = "POST"
 			tgt.URL = "http://localhost:8080/api/auth"
-			tgt.Body = []byte(fmt.Sprintf(`{"username": "%s", "password": "test_pass"}`, generateUsername()))
+			tgt.Body = []byte(fmt.Sprintf(`{"username": "%s", "password": "test_pass"}`, user))
 			tgt.Header = map[string][]string{
 				"Content-Type": {"application/json"},
 			}
