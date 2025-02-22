@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	ctxTimer = 1000 * time.Millisecond
+	ctxTimer = 10000 * time.Millisecond
 )
 
 type Storage struct {

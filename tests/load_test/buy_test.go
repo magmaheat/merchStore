@@ -192,3 +192,80 @@ func registerUsersParallel(count int) ([]string, error) {
 	log.Info("all users are registered")
 	return tokens, nil
 }
+
+//func registerUsersParallel(count int) ([]string, error) {
+//	users := generateUserList(count)
+//	tokens := make([]string, count)
+//
+//	var wg sync.WaitGroup
+//	errChan := make(chan error, count)
+//	taskChan := make(chan int, count) // Очередь задач
+//
+//	// Ограничиваем количество запросов
+//	limiter := rate.NewLimiter(50, 10) // 50 RPS, 10 параллельно
+//
+//	// Запускаем 10 воркеров
+//	for i := 0; i < 10; i++ {
+//		wg.Add(1)
+//		go func() {
+//			defer wg.Done()
+//			for idx := range taskChan {
+//				user := users[idx]
+//
+//				if err := limiter.Wait(context.Background()); err != nil {
+//					errChan <- fmt.Errorf("rate limiter error for user %s: %w", user, err)
+//					continue
+//				}
+//
+//				resp, err := http.Post(
+//					"http://localhost:8080/api/auth",
+//					"application/json",
+//					strings.NewReader(fmt.Sprintf(`{"username": "%s", "password": "test_pass"}`, user)),
+//				)
+//				if err != nil {
+//					errChan <- fmt.Errorf("failed to register user %s: %w", user, err)
+//					continue
+//				}
+//				defer resp.Body.Close()
+//
+//				if resp.StatusCode != http.StatusOK {
+//					body, _ := io.ReadAll(resp.Body)
+//					errChan <- fmt.Errorf("failed to register user %s: status %d, response: %s",
+//						user, resp.StatusCode, string(body))
+//					continue
+//				}
+//
+//				var result struct {
+//					Token string `json:"token"`
+//				}
+//				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+//					errChan <- fmt.Errorf("failed to decode response for user %s: %w", user, err)
+//					continue
+//				}
+//
+//				tokens[idx] = result.Token
+//			}
+//		}()
+//	}
+//
+//	// Заполняем очередь задачами
+//	for i := 0; i < count; i++ {
+//		taskChan <- i
+//	}
+//	close(taskChan)
+//
+//	wg.Wait()
+//	close(errChan)
+//
+//	// Собираем ошибки
+//	var errors []error
+//	for err := range errChan {
+//		errors = append(errors, err)
+//	}
+//	if len(errors) > 0 {
+//		return nil, errors[0]
+//	}
+//
+//	log.Info("all users are registered")
+//	return tokens, nil
+//}
