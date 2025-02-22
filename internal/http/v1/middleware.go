@@ -16,6 +16,7 @@ type AuthMiddleware struct {
 
 func (a *AuthMiddleware) UserIdentity(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+
 		token, ok := bearerToken(c.Request())
 		if !ok {
 			log.Errorf("http.AuthMiddleware.UserIdentity.bearerToken: %v", ErrInvalidAuthHeader)

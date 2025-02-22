@@ -1,4 +1,4 @@
-//go:build load
+//go:build auth
 
 package load_test
 
@@ -11,19 +11,6 @@ import (
 	"github.com/google/uuid"
 	vegeta "github.com/tsenart/vegeta/v12/lib"
 )
-
-func generateUsername() string {
-	return fmt.Sprintf("user_%s", uuid.New().String())
-}
-
-func generateUserList(count int) []string {
-	users := make([]string, 0, count)
-	for i := 0; i < count; i++ {
-		users = append(users, fmt.Sprintf("user_%d", i+1))
-	}
-
-	return users
-}
 
 func TestAuthLoad(t *testing.T) {
 	users := generateUserList(100000)
@@ -81,4 +68,17 @@ func TestAuthLoad(t *testing.T) {
 	} else {
 		t.Log("✅ SLI времени ответа выполнен")
 	}
+}
+
+func GenerateUserList(count int) []string {
+	users := make([]string, 0, count)
+	for i := 0; i < count; i++ {
+		users = append(users, fmt.Sprintf("user_%d", i+1))
+	}
+
+	return users
+}
+
+func generateUsername() string {
+	return fmt.Sprintf("user_%s", uuid.New().String())
 }
