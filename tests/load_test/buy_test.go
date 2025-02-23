@@ -21,8 +21,6 @@ func TestBuyLoad(t *testing.T) {
 		t.Fatalf("Failed to register users: %v", err)
 	}
 
-	_ = tokens
-
 	rand.Seed(uint64(time.Now().UnixNano()))
 
 	rate := vegeta.Rate{Freq: 1000, Per: time.Second}
@@ -61,11 +59,10 @@ func TestBuyLoad(t *testing.T) {
 	t.Logf("Latency (99th percentile): %s\n", metrics.Latencies.P99)
 	t.Logf("Status codes: %v\n", metrics.StatusCodes)
 
-	// Проверка SLI успешности.
 	if metrics.Success < 0.9999 {
 		t.Error("❌ SLI успешности не выполнен (меньше 99.99%)")
 	} else {
-		t.Log("✅ SLI успешности выполнен")
+		t.Log("✅ SLI времени ответа выполнен")
 	}
 
 	if metrics.Latencies.Mean > 50*time.Millisecond {
@@ -73,6 +70,7 @@ func TestBuyLoad(t *testing.T) {
 	} else {
 		t.Log("✅ SLI времени ответа выполнен")
 	}
+
 }
 
 func generateUserList(count int) []string {
@@ -85,11 +83,13 @@ func generateUserList(count int) []string {
 }
 
 func registerUsers(count int) ([]string, error) {
+	timeStart := time.Now()
 	users := generateUserList(count)
 	tokens := make([]string, 0, count)
 	var mu sync.Mutex
 
-	workerLimit := 50
+	// количество горутин, отправляющих запрросы
+	workerLimit := 100
 	sem := make(chan struct{}, workerLimit)
 	errCh := make(chan error, count)
 	var wg sync.WaitGroup
@@ -124,6 +124,8 @@ func registerUsers(count int) ([]string, error) {
 	if len(errCh) > 0 {
 		return nil, <-errCh
 	}
+
+	log.Printf("Общее время регистрации пользователей: %v", time.Now().Sub(timeStart))
 
 	return tokens, nil
 }
