@@ -3,14 +3,11 @@
 package load_test
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	vegeta "github.com/tsenart/vegeta/v12/lib"
-	"golang.org/x/time/rate"
-	"io"
-	"math/rand"
+	"golang.org/x/exp/rand"
 	"net/http"
 	"strings"
 	"sync"
@@ -19,14 +16,16 @@ import (
 )
 
 func TestBuyLoad(t *testing.T) {
-	tokens, err := registerUsersParallel(100000)
+	tokens, err := registerUsers(100000)
 	if err != nil {
 		t.Fatalf("Failed to register users: %v", err)
 	}
 
-	rand.Seed(time.Now().UnixNano())
+	_ = tokens
 
-	rate := vegeta.Rate{Freq: 50, Per: time.Second}
+	rand.Seed(uint64(time.Now().UnixNano()))
+
+	rate := vegeta.Rate{Freq: 1000, Per: time.Second}
 	duration := 10 * time.Second
 
 	attacker := vegeta.NewAttacker()
@@ -64,9 +63,9 @@ func TestBuyLoad(t *testing.T) {
 
 	// Проверка SLI успешности.
 	if metrics.Success < 0.9999 {
-		t.Error("SLI успешности не выполнен (меньше 99.99%)")
+		t.Error("❌ SLI успешности не выполнен (меньше 99.99%)")
 	} else {
-		t.Log("SLI успешности выполнен")
+		t.Log("✅ SLI успешности выполнен")
 	}
 
 	if metrics.Latencies.Mean > 50*time.Millisecond {
@@ -88,184 +87,68 @@ func generateUserList(count int) []string {
 func registerUsers(count int) ([]string, error) {
 	users := generateUserList(count)
 	tokens := make([]string, 0, count)
+	var mu sync.Mutex
+
+	workerLimit := 50
+	sem := make(chan struct{}, workerLimit)
+	errCh := make(chan error, count)
+	var wg sync.WaitGroup
 
 	for idx, user := range users {
-		resp, err := http.Post(
-			"http://localhost:8080/api/auth",
-			"application/json",
-			strings.NewReader(fmt.Sprintf(`{"username": "%s", "password": "test_pass"}`, user)),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to register user %s: %w", user, err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("failed to register user %s: status %d", user, resp.StatusCode)
-		}
-
-		var result struct {
-			Token string `json:"token"`
-		}
-		if err = json.NewDecoder(resp.Body).Decode(&result); err != nil {
-			return nil, fmt.Errorf("failed to decode response for user %s: %w", user, err)
-		}
-
-		tokens = append(tokens, result.Token)
-
-		if idx > 0 && idx%500 == 0 {
-			log.Infof("registered: %d users", idx)
-		}
-	}
-
-	return tokens, nil
-}
-
-func registerUsersParallel(count int) ([]string, error) {
-	users := generateUserList(count)
-	tokens := make([]string, count)
-	var wg sync.WaitGroup
-	errChan := make(chan error, count)
-
-	// Запускаем горутину для чтения ошибок.
-	var errors []error
-	go func() {
-		for err := range errChan {
-			errors = append(errors, err)
-		}
-	}()
-
-	// Ограничиваем количество запросов до 100 в секунду.
-	limiter := rate.NewLimiter(100, 1)
-
-	for i, user := range users {
+		sem <- struct{}{}
 		wg.Add(1)
-		go func(i int, user string) {
+
+		go func(user string, idx int) {
 			defer wg.Done()
+			defer func() { <-sem }()
 
-			// Ожидаем разрешения от rate limiter.
-			if err := limiter.Wait(context.Background()); err != nil {
-				errChan <- fmt.Errorf("rate limiter error for user %s: %w", user, err)
-				return
-			}
-
-			resp, err := http.Post(
-				"http://localhost:8080/api/auth",
-				"application/json",
-				strings.NewReader(fmt.Sprintf(`{"username": "%s", "password": "test_pass"}`, user)),
-			)
+			token, err := registerUser(user)
 			if err != nil {
-				errChan <- fmt.Errorf("failed to register user %s: %w", user, err)
-				return
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				body, _ := io.ReadAll(resp.Body) // Читаем тело ответа для диагностики.
-				errChan <- fmt.Errorf(
-					"failed to register user %s: status %d, response: %s",
-					user, resp.StatusCode, string(body),
-				)
+				errCh <- err
 				return
 			}
 
-			var result struct {
-				Token string `json:"token"`
-			}
-			if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-				errChan <- fmt.Errorf("failed to decode response for user %s: %w", user, err)
-				return
-			}
+			mu.Lock()
+			tokens = append(tokens, token)
+			mu.Unlock()
 
-			tokens[i] = result.Token
-		}(i, user)
+			if idx > 0 && idx%500 == 0 {
+				log.Infof("registered: %d users", idx)
+			}
+		}(user, idx)
 	}
 
 	wg.Wait()
-	close(errChan) // Закрываем канал после завершения всех горутин.
+	close(errCh)
 
-	// Если есть ошибки, возвращаем первую из них.
-	if len(errors) > 0 {
-		return nil, errors[0]
+	if len(errCh) > 0 {
+		return nil, <-errCh
 	}
 
-	log.Info("all users are registered")
 	return tokens, nil
 }
 
-//func registerUsersParallel(count int) ([]string, error) {
-//	users := generateUserList(count)
-//	tokens := make([]string, count)
-//
-//	var wg sync.WaitGroup
-//	errChan := make(chan error, count)
-//	taskChan := make(chan int, count) // Очередь задач
-//
-//	// Ограничиваем количество запросов
-//	limiter := rate.NewLimiter(50, 10) // 50 RPS, 10 параллельно
-//
-//	// Запускаем 10 воркеров
-//	for i := 0; i < 10; i++ {
-//		wg.Add(1)
-//		go func() {
-//			defer wg.Done()
-//			for idx := range taskChan {
-//				user := users[idx]
-//
-//				if err := limiter.Wait(context.Background()); err != nil {
-//					errChan <- fmt.Errorf("rate limiter error for user %s: %w", user, err)
-//					continue
-//				}
-//
-//				resp, err := http.Post(
-//					"http://localhost:8080/api/auth",
-//					"application/json",
-//					strings.NewReader(fmt.Sprintf(`{"username": "%s", "password": "test_pass"}`, user)),
-//				)
-//				if err != nil {
-//					errChan <- fmt.Errorf("failed to register user %s: %w", user, err)
-//					continue
-//				}
-//				defer resp.Body.Close()
-//
-//				if resp.StatusCode != http.StatusOK {
-//					body, _ := io.ReadAll(resp.Body)
-//					errChan <- fmt.Errorf("failed to register user %s: status %d, response: %s",
-//						user, resp.StatusCode, string(body))
-//					continue
-//				}
-//
-//				var result struct {
-//					Token string `json:"token"`
-//				}
-//				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-//					errChan <- fmt.Errorf("failed to decode response for user %s: %w", user, err)
-//					continue
-//				}
-//
-//				tokens[idx] = result.Token
-//			}
-//		}()
-//	}
-//
-//	// Заполняем очередь задачами
-//	for i := 0; i < count; i++ {
-//		taskChan <- i
-//	}
-//	close(taskChan)
-//
-//	wg.Wait()
-//	close(errChan)
-//
-//	// Собираем ошибки
-//	var errors []error
-//	for err := range errChan {
-//		errors = append(errors, err)
-//	}
-//	if len(errors) > 0 {
-//		return nil, errors[0]
-//	}
-//
-//	log.Info("all users are registered")
-//	return tokens, nil
-//}
+func registerUser(user string) (string, error) {
+	resp, err := http.Post(
+		"http://localhost:8080/api/auth",
+		"application/json",
+		strings.NewReader(fmt.Sprintf(`{"username": "%s", "password": "test_pass"}`, user)),
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to register user %s: %w", user, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to register user %s: status %d", user, resp.StatusCode)
+	}
+
+	var result struct {
+		Token string `json:"token"`
+	}
+	if err = json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to decode response for user %s: %w", user, err)
+	}
+
+	return result.Token, nil
+}

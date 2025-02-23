@@ -18,6 +18,7 @@ require (
 	github.com/swaggo/echo-swagger v1.4.1
 	github.com/tsenart/vegeta/v12 v12.12.0
 	golang.org/x/crypto v0.33.0
+	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 )
 
 require (
