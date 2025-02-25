@@ -1,6 +1,6 @@
 //go:build auth
 
-package load_test
+package load
 
 import (
 	"fmt"

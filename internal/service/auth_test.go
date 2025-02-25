@@ -127,7 +127,7 @@ func TestAuthService_ParseToken(t *testing.T) {
 		},
 		//{
 		//	name: "Wrong signing method",
-		//	tokenSetup: func() string {
+		//	tokenSetup: scripts() string {
 		//		token := jwt.NewWithClaims(jwt.SigningMethodRS256, &TokenClaims{
 		//			StandardClaims: jwt.StandardClaims{
 		//				ExpiresAt: time.Now().Add(time.Hour).Unix(),

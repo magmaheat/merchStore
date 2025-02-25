@@ -1,4 +1,4 @@
-//go:build buy
+//go:build sendCoin
 
 package load
 
@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func TestBuyLoad(t *testing.T) {
+func TestSendCoin(t *testing.T) {
 	tokens, err := scripts.LoadTokensFromFile("./register_users/tokens.json")
 	if err != nil {
 		t.Fatalf("Failed to register users: %v", err)
@@ -32,8 +32,9 @@ func TestBuyLoad(t *testing.T) {
 
 			token := tokens[rand.Intn(len(tokens))]
 
-			tgt.Method = "GET"
-			tgt.URL = "http://localhost:8080/api/buy/pen"
+			tgt.Method = "POST"
+			tgt.URL = "http://localhost:8080/api/sendCoin"
+			tgt.Body = []byte(fmt.Sprintf(`{"toUser": "%s", "amount": 10}`, fmt.Sprintf("user_%d", rand.Intn(99999)+1)))
 			tgt.Header = map[string][]string{
 				"Authorization": {fmt.Sprintf("Bearer %s", token)},
 				"Content-Type":  {"application/json"},
@@ -44,7 +45,7 @@ func TestBuyLoad(t *testing.T) {
 
 	var metrics vegeta.Metrics
 
-	for res := range attacker.Attack(targeter(), rate, duration, "Buy Test") {
+	for res := range attacker.Attack(targeter(), rate, duration, "Send coin Test") {
 		metrics.Add(res)
 	}
 
@@ -67,5 +68,4 @@ func TestBuyLoad(t *testing.T) {
 	} else {
 		t.Log("✅ SLI времени ответа выполнен")
 	}
-
 }
