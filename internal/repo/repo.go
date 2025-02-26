@@ -29,4 +29,5 @@ type Repo interface {
 	GetReceivedTransactions(ctx context.Context, userId int) ([]GetReceivedTransactionOutput, error)
 	GetSentTransactions(ctx context.Context, userId int) ([]GetSentTransactionOutput, error)
 	GetItems(ctx context.Context, userId int) ([]Item, error)
+	//FastGetUserIdWithPassword(ctx context.Context, username, password string) (string, error)
 }

@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+const (
+	ctxTimer = 10000 * time.Millisecond
+)
+
 type Storage struct {
 	db *postgres.Postgres
 }
@@ -21,7 +25,14 @@ func New(db *postgres.Postgres) *Storage {
 	return &Storage{db: db}
 }
 
+func (s *Storage) FastGetUserIdWithPassword(ctx context.Context, username, password string) (string, error) {
+	return "", nil
+}
+
 func (s *Storage) GetUserIdWithPassword(ctx context.Context, username string) (int, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, ctxTimer)
+	defer cancel()
+
 	sql, args, _ := s.db.Builder.
 		Select("id", "password").
 		From("users").
@@ -44,8 +55,10 @@ func (s *Storage) GetUserIdWithPassword(ctx context.Context, username string) (i
 }
 
 func (s *Storage) CreateUserWithBalance(ctx context.Context, username, password string) (int, error) {
-	var userID int
+	ctx, cancel := context.WithTimeout(ctx, ctxTimer)
+	defer cancel()
 
+	var userID int
 	sql := "SELECT create_user_with_balance($1, $2)"
 	args := []interface{}{username, password}
 

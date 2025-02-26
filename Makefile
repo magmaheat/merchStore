@@ -6,6 +6,9 @@ down:
 	docker-compose down --remove-orphans
 .PHONY: compose-down
 
+restart: down up
+.PHONY: restart
+
 unit-tests:
 	go test -coverprofile=coverage.out ./internal/service
 	go tool cover -func=coverage.out
